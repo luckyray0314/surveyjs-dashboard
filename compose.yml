@@ -1,0 +1,50 @@
+version: '3'
+services:
+  express-app:
+    build:
+      args:
+      - NODE_ENV=development
+      context: express-app
+      target: development
+    environment:
+      - DATABASE_DB=surveyjs
+      - DATABASE_USER=admin
+      - DATABASE_PASSWORD=/run/secrets/db-password
+      - DATABASE_HOST=mongo
+      - NODE_ENV=development
+    ports:
+      - 9080:3000
+    secrets:
+      - db-password
+    volumes:
+      - ./express-app:/code/express-app
+      - ./public:/code/public
+    networks:
+      - surveyjs-net
+    depends_on:
+      - mongo
+  mongo:
+    build:
+      context: mongo
+    secrets:
+      - db-password
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      # - MONGO_INITDB_ROOT_PASSWORD=123456
+      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/db-password
+      - MONGO_INITDB_DATABASE=surveyjs
+    ports:
+      - '27017:27017'
+    volumes:
+      - ./mongo/entrypoint:/docker-entrypoint-initdb.d
+      - ./mongo/data:/data/db
+      - ./mongo/config:/data/configdb
+    networks:
+        - surveyjs-net
+    restart: unless-stopped
+networks:
+    surveyjs-net:
+        driver: bridge
+secrets:
+    db-password:
+        file: ./mongo/password.txt
